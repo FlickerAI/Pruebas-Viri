@@ -1,0 +1,183 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import { productos, obtenerRutaImagen } from '../../utils/data';
+
+export async function getStaticPaths() {
+  return productos.map(p => ({
+    params: { id: p.id },
+    props: { producto: p },
+  }));
+}
+
+const { producto } = Astro.props;
+---
+
+<MainLayout title={producto.nombre}>
+    <div class="product-detail container">
+        <div class="detail-image">
+            <img 
+                src={obtenerRutaImagen(producto.id, producto.archivo)} 
+                alt={producto.nombre} 
+                transition:name={`img-${producto.id}`} 
+            />
+        </div>
+
+        <div class="detail-info">
+            <span class="category-tag">{producto.categoria}</span>
+            <h1>{producto.nombre}</h1>
+            
+            <div class="rating">
+                ★★★★★ <span style="color: #666; font-size: 0.8em;">({producto.rating})</span>
+            </div>
+
+            <p class="price-lg">${producto.precio} MXN</p>
+            <p class="description">{producto.descripcion}</p>
+
+            <button id="btn-apartar" class="cta-button">
+                Apartar Ahora
+            </button>
+        </div>
+    </div>
+
+    <dialog id="modal-pedido">
+    <form id="form-whatsapp" method="dialog">
+        <h2>Detalles del Apartado</h2>
+        <p>Producto: <strong>{producto.nombre}</strong></p>
+
+        <div class="input-group">
+            <label for="nombre">Tu Nombre</label>
+            <input type="text" id="nombre" required placeholder="Ej. Alexis Rodríguez" />
+        </div>
+
+        <div class="input-group">
+            <label for="fecha">Fecha de entrega</label>
+            <input type="date" id="fecha" required />
+        </div>
+
+        <div class="input-group">
+            <label for="hora">Hora aproximada</label>
+            <input type="time" id="hora" required />
+        </div>
+
+        <div class="acciones">
+            <button type="button" id="btn-cancelar">Cancelar</button>
+            <button type="submit">Enviar a WhatsApp</button>
+        </div>
+    </form>
+</dialog>
+</MainLayout>
+
+<script define:vars={{ producto }}>
+    const btnApartar = document.getElementById('btn-apartar');
+    const modal = document.getElementById('modal-pedido');
+    const btnCancelar = document.getElementById('btn-cancelar');
+    const form = document.getElementById('form-whatsapp');
+    const TELEFONO = "528621246460";
+
+    btnApartar.addEventListener('click', () => modal.showModal());
+    btnCancelar.addEventListener('click', () => modal.close());
+
+    form.addEventListener('submit', (e) => {
+        // En Astro con dialog, el submit puede cerrar el modal antes de ejecutar el JS
+        // Así que capturamos los datos primero.
+        
+        const nombre = document.getElementById('nombre').value;
+        const fecha = document.getElementById('fecha').value;
+        const hora = document.getElementById('hora').value;
+        
+        // Conversión técnica de 24h a 12h para mejor legibilidad del cliente
+        const [h, m] = hora.split(':');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const horaFormateada = `${h % 12 || 12}:${m} ${ampm}`;
+
+        // Construcción del mensaje con la nueva variable de hora
+        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa apartar el "${producto.nombre}" (ID: ${producto.id}) con precio de $${producto.precio}. Lo necesito para el día ${fecha} aproximadamente a las ${horaFormateada}.`;
+        
+        const url = `https://wa.me/${TELEFONO}?text=${encodeURIComponent(mensaje)}`;
+        
+        // Abrimos WhatsApp y cerramos el sistema de captura
+        window.open(url, '_blank');
+        modal.close();
+    });
+</script>
+
+<style>
+    .product-detail {
+        padding-top: var(--space-4);
+        display: grid;
+        gap: var(--space-4);
+    }
+    
+    @media (min-width: 768px) {
+        .product-detail { grid-template-columns: 1fr 1fr; align-items: start; }
+    }
+
+    .detail-image img {
+        width: 100%; border-radius: 8px;
+    }
+
+    .category-tag {
+        font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--color-secondary);
+    }
+    
+    h1 { font-size: var(--fs-xxl); margin: var(--space-1) 0; }
+    
+    .price-lg {
+        font-size: var(--fs-xl); color: var(--color-accent); font-family: var(--font-display);
+        margin: var(--space-2) 0;
+    }
+    
+    .rating { color: #FFD700; margin-bottom: var(--space-2); }
+
+    .cta-button {
+        width: 100%;
+        padding: var(--space-2);
+        background-color: #ffffff; /* Blanco por defecto */
+        color: var(--color-accent); /* Texto Rojo */
+        border: 1px solid #ffffff;
+        font-family: var(--font-body);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        margin-top: var(--space-4);
+        transition: all 0.3s ease;
+    }
+    
+    /* Inversión al Hover */
+    .cta-button:hover { 
+        background-color: var(--color-accent); /* Fondo Rojo */
+        color: #ffffff; /* Texto Blanco */
+        border-color: var(--color-accent);
+    }
+
+    /* MODAL DARK MODE */
+    .modal {
+        background: var(--color-surface); /* Fondo oscuro */
+        border: 1px solid #333;
+        color: var(--color-text);
+        padding: var(--space-4);
+        border-radius: 8px;
+        width: 90%; max-width: 400px;
+        margin: auto;
+    }
+    .modal::backdrop { background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
+    
+    .modal h3 { color: var(--color-accent); margin-bottom: var(--space-1); }
+    .modal-desc { color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-3); }
+
+    .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--color-text); }
+    .input-group input { 
+        width: 100%; padding: 12px; 
+        background: #0a0a0a; border: 1px solid #333; color: white;
+        border-radius: 4px;
+    }
+    .input-group { margin-bottom: var(--space-2); }
+
+    .modal-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-3); }
+    
+    /* Botones del Modal */
+    .btn-primary { background: var(--color-accent); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
+    .btn-text { background: none; border: none; cursor: pointer; color: var(--color-text-muted); text-decoration: underline; }
+</style>

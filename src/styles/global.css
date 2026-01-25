@@ -1,0 +1,67 @@
+/* Importamos fuentes de Fontshare */
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=satoshi@400,500,700&display=swap');
+
+:root {
+  /* Paleta Dark Mode "Night Garden" */
+  --color-base: #0a0a0a;       /* Fondo principal (Casi negro) */
+  --color-surface: #1a1a1a;    /* Tarjetas y secciones secundarias */
+  --color-surface-hover: #252525;
+  
+  --color-text: #e0e0e0;       /* Blanco suave (menos agresivo a la vista) */
+  --color-text-muted: #a0a0a0; /* Textos secundarios */
+  
+  --color-accent: #9A2A3B;     /* Burgundy ligeramente más brillante para fondo oscuro */
+  --color-accent-hover: #b93b4f;
+
+  /* Tipografía y Espaciado (Se mantienen igual) */
+  --font-body: 'Satoshi', sans-serif;
+  --font-display: 'Clash Display', sans-serif;
+  
+  --fs-base: 1rem;
+  --fs-md: 1.25rem;
+  --fs-lg: 1.563rem;
+  --fs-xl: 1.953rem;
+  --fs-xxl: 2.441rem;
+  
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-6: 4rem; /* Nuevo espaciado para secciones grandes */
+}
+
+body {
+  background-color: var(--color-base);
+  color: var(--color-text);
+}
+
+/* Ajuste para inputs en modo oscuro */
+input, textarea, select {
+    background: var(--color-surface);
+    border: 1px solid #333;
+    color: var(--color-text);
+}
+input:focus { outline: 1px solid var(--color-accent); border-color: var(--color-accent); }
+
+/* Scrollbar oscura (Chrome/Safari) */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--color-base); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  line-height: 1.1; /* Títulos apretados */
+  letter-spacing: -0.02em; /* Kerning negativo para impacto */
+  margin-bottom: var(--space-2);
+}
+
+img { max-width: 100%; display: block; object-fit: cover; }
+a { text-decoration: none; color: inherit; }
+
+/* Utilidades Grid */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-2);
+}

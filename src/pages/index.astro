@@ -1,17 +1,147 @@
 ---
-
+import MainLayout from '../layouts/MainLayout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<MainLayout title="Inicio">
+    <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="container hero-content">
+            <span class="hero-label">Colección 14 de Febrero</span>
+            <h1>Diseño Floral que<br>Trasciende el Instante</h1>
+            <p>Curaduría botánica exclusiva en Zaragoza, Coahuila.</p>
+            
+            <div class="hero-actions">
+                <a href="/catalogo" class="btn btn-primary">Explorar Catálogo</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section container">
+        <div class="section-header">
+            <h2>Nuestros Servicios</h2>
+        </div>
+        
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-img">
+                    <img src="https://images.unsplash.com/photo-1519225421980-715cb0202128?q=80&w=800" alt="Bodas">
+                </div>
+                <div class="service-text">
+                    <h3>Eventos de Gala</h3>
+                    <p>Diseño integral para bodas y recepciones corporativas.</p>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-img">
+                    <img src="https://images.unsplash.com/photo-1562690868-60bbe7293e94?q=80&w=800" alt="Ramos">
+                </div>
+                <div class="service-text">
+                    <h3>Diseño de Autor</h3>
+                    <p>Arreglos únicos basados en psicología del color.</p>
+                </div>
+            </div>
+             <div class="service-card">
+                <div class="service-img">
+                    <img src="https://images.unsplash.com/photo-1592216063913-109249e05ce5?q=80&w=800" alt="Suscripciones">
+                </div>
+                <div class="service-text">
+                    <h3>Suscripciones</h3>
+                    <p>Frescura recurrente para hogares y oficinas.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section dark-bg">
+        <div class="container identity-wrapper">
+            <div class="text-block">
+                <h4>Nuestra Misión</h4>
+                <p>Transformar la flora regional en piezas de diseño arquitectónico vegetal.</p>
+            </div>
+            <div class="text-block">
+                <h4>Visión 2030</h4>
+                <p>Ser el referente de diseño floral de alta gama en la región de los Manantiales.</p>
+            </div>
+            <div class="text-block full">
+                <h4>Historia</h4>
+                <p>BouquetBoutique nació de una observación técnica: la falta de una propuesta floral a la altura de la elegancia local.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section container">
+        <div class="map-container">
+            <div class="map-info">
+                <h2>Visítanos</h2>
+                <p>Zaragoza, Coahuila</p>
+                <a href="https://maps.google.com/?q=Zaragoza,Coahuila" target="_blank" class="btn btn-outline">Abrir en GPS</a>
+            </div>
+            <a href="https://maps.google.com/?q=Zaragoza,Coahuila" target="_blank" class="map-visual">
+                <div class="pin">📍</div>
+                <img src="https://i.imgur.com/8Q5q5Cj.png" alt="Mapa de Zaragoza" class="map-placeholder"> 
+                </a>
+        </div>
+    </section>
+</MainLayout>
+
+<style>
+    /* Estilos Generales */
+    .section { padding: var(--space-6) 0; }
+    .section-header { text-align: center; margin-bottom: var(--space-4); }
+    
+    .btn { display: inline-block; padding: 12px 24px; font-weight: 700; text-transform: uppercase; text-decoration: none; border-radius: 4px; font-size: 0.9rem; transition: all 0.2s; }
+    .btn-primary { background: white; color: var(--color-accent); } /* Botón blanco texto rojo */
+    .btn-primary:hover { background: var(--color-accent); color: white; }
+    
+    .btn-outline { border: 1px solid white; color: white; }
+    .btn-outline:hover { background: white; color: black; }
+
+    /* HERO */
+    .hero {
+        height: 75vh; position: relative; display: flex; align-items: center;
+        background-image: url('https://images.unsplash.com/photo-1596627725963-360db272e512?q=80&w=2000');
+        background-size: cover; background-position: center;
+    }
+    .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+    .hero-content { position: relative; z-index: 10; text-align: left; }
+    .hero h1 { font-size: 3rem; line-height: 1.1; margin-bottom: var(--space-2); color: white; }
+    .hero-label { color: var(--color-accent); font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+
+    /* SERVICES GRID */
+    .services-grid { 
+        display: grid; gap: var(--space-4); 
+        grid-template-columns: 1fr; /* Móvil */
+    }
+    @media(min-width: 768px) { .services-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .service-card { background: #151515; border: 1px solid #333; overflow: hidden; border-radius: 8px; }
+    .service-img { height: 200px; overflow: hidden; }
+    .service-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .service-card:hover .service-img img { transform: scale(1.05); }
+    .service-text { padding: var(--space-3); }
+    .service-text h3 { color: white; margin-bottom: var(--space-1); }
+    .service-text p { color: #aaa; font-size: 0.9rem; }
+
+    /* IDENTITY GRID */
+    .identity-wrapper { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
+    @media(min-width: 768px) { .identity-wrapper { grid-template-columns: 1fr 1fr; } }
+    .full { grid-column: 1 / -1; }
+    .text-block { background: #1a1a1a; padding: var(--space-3); border-left: 2px solid var(--color-accent); }
+    .text-block h4 { color: white; margin-bottom: var(--space-1); }
+    .text-block p { color: #ccc; }
+
+    /* MAPA */
+    .map-container { 
+        display: grid; gap: var(--space-4); 
+        background: #151515; padding: var(--space-4); border-radius: 8px; 
+        border: 1px solid #333;
+    }
+    @media(min-width: 768px) { .map-container { grid-template-columns: 1fr 2fr; align-items: center; } }
+    
+    .map-visual { 
+        position: relative; height: 300px; border-radius: 4px; overflow: hidden; display: block; background: #222;
+    }
+    .map-placeholder { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+    .map-visual:hover .map-placeholder { opacity: 0.8; }
+    .pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; z-index: 10; }
+</style>

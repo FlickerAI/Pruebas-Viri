@@ -1,0 +1,130 @@
+---
+import '../styles/global.css';
+import { categorias } from '../utils/data';
+const { title } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} | BouquetBoutique</title>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <button id="menu-toggle" aria-label="Abrir menú">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18"/>
+                </svg>
+            </button>
+            
+            <a href="/" class="logo">BouquetBoutique</a>
+            
+            <div style="width: 28px;"></div>
+        </div>
+    </header>
+
+    <nav id="mobile-menu" class="mobile-menu">
+        <div class="menu-header">
+            <span class="menu-title">Navegación</span>
+            <button id="close-menu" class="close-btn">&times;</button>
+        </div>
+        
+        <div class="menu-content">
+            <ul class="nav-main">
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/catalogo">Ver Todo el Catálogo</a></li>
+            </ul>
+
+            <hr class="menu-divider">
+            <p class="cat-label">Filtrar por Colección:</p>
+
+            <ul class="cat-list">
+                {categorias.map(cat => (
+                    <li>
+                        <a href={`/catalogo?cat=${encodeURIComponent(cat)}`}>
+                            {cat}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <slot />
+    </main>
+
+    <footer class="site-footer">
+        <p>© 2026 BouquetBoutique.</p>
+    </footer>
+
+    <script is:inline>
+        const menu = document.getElementById('mobile-menu');
+        const toggle = document.getElementById('menu-toggle');
+        const close = document.getElementById('close-menu');
+
+        function toggleMenu(show) {
+            if (show) menu.classList.add('active');
+            else menu.classList.remove('active');
+        }
+
+        toggle.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(true); });
+        close.addEventListener('click', () => toggleMenu(false));
+        
+        // Cerrar si tocan fuera
+        document.addEventListener('click', (e) => {
+            if (menu.classList.contains('active') && !menu.contains(e.target) && !toggle.contains(e.target)) {
+                toggleMenu(false);
+            }
+        });
+    </script>
+</body>
+</html>
+
+<style>
+    /* HEADER */
+    .site-header {
+        position: sticky; top: 0; z-index: 100;
+        background: rgba(10, 10, 10, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 0;
+        border-bottom: 1px solid #222;
+    }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 1px; }
+    #menu-toggle { background: none; border: none; color: white; cursor: pointer; }
+
+    /* MENU DRAWER ESTILO */
+    .mobile-menu {
+        position: fixed; top: 0; left: 0;
+        width: 80%; max-width: 300px; height: 100vh;
+        background: #0f0f0f; 
+        z-index: 2000;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        padding: 2rem;
+        border-right: 1px solid #333;
+        box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+    }
+    .mobile-menu.active { transform: translateX(0); }
+
+    .menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .menu-title { color: var(--color-accent); font-weight: bold; text-transform: uppercase; }
+    .close-btn { background: none; border: none; font-size: 2.5rem; color: #fff; cursor: pointer; line-height: 0.5; }
+
+    .nav-main { list-style: none; }
+    .nav-main a { display: block; font-size: 1.2rem; color: white; margin-bottom: 1rem; font-weight: bold; }
+    
+    .menu-divider { border: 0; border-top: 1px solid #333; margin: 1.5rem 0; }
+    
+    .cat-label { color: #666; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; display: block; }
+    .cat-list { list-style: none; }
+    .cat-list li { margin-bottom: 0.8rem; }
+    .cat-list a { color: #ccc; transition: color 0.2s; font-size: 1rem; display: block; }
+    .cat-list a:hover { color: var(--color-accent); padding-left: 5px; }
+
+    .site-footer { text-align: center; padding: 2rem 0; color: #444; font-size: 0.8rem; margin-top: 2rem; border-top: 1px solid #1a1a1a; }
+</style>
