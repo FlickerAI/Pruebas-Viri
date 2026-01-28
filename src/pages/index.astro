@@ -5,16 +5,15 @@ import MainLayout from '../layouts/MainLayout.astro';
 <MainLayout title="Inicio">
     <section class="hero">
         <div class="hero-overlay"></div>
-        <div class="container hero-content">
-            <span class="hero-label">Colección 14 de Febrero</span>
-            <h1>Diseño Floral que<br>Trasciende el Instante</h1>
-            <p>Curaduría botánica exclusiva en Zaragoza, Coahuila.</p>
-            
-            <div class="hero-actions">
-                <a href="/catalogo" class="btn btn-primary">Explorar Catálogo</a>
-            </div>
+        
+        <div class="hero-content">
+            <a href="/catalogo" class="btn-solid">
+                Ver Catálogo
+            </a>
         </div>
     </section>
+
+    </MainLayout>
 
     <section class="section container">
         <div class="section-header">
@@ -74,74 +73,150 @@ import MainLayout from '../layouts/MainLayout.astro';
             <div class="map-info">
                 <h2>Visítanos</h2>
                 <p>Zaragoza, Coahuila</p>
-                <a href="https://maps.google.com/?q=Zaragoza,Coahuila" target="_blank" class="btn btn-outline">Abrir en GPS</a>
+                <a href="https://maps.app.goo.gl/yfTWcUUagBBcnQWY6" target="_blank" class="btn btn-outline">Abrir GPS</a>
             </div>
-            <a href="https://maps.google.com/?q=Zaragoza,Coahuila" target="_blank" class="map-visual">
-                <div class="pin">📍</div>
-                <img src="https://i.imgur.com/8Q5q5Cj.png" alt="Mapa de Zaragoza" class="map-placeholder"> 
-                </a>
+            
+            <div class="map-frame">
+                <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d219.1711380110618!2d-100.91689383084966!3d28.48742967872932!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses-419!2smx!4v1769601656982!5m2!1ses-419!2smx" 
+                    width="100%" 
+                    height="100%" 
+                    style="border:0;" 
+                    allowfullscreen="" 
+                    loading="lazy" 
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
         </div>
     </section>
 </MainLayout>
 
 <style>
-    /* Estilos Generales */
-    .section { padding: var(--space-6) 0; }
-    .section-header { text-align: center; margin-bottom: var(--space-4); }
-    
-    .btn { display: inline-block; padding: 12px 24px; font-weight: 700; text-transform: uppercase; text-decoration: none; border-radius: 4px; font-size: 0.9rem; transition: all 0.2s; }
-    .btn-primary { background: white; color: var(--color-accent); } /* Botón blanco texto rojo */
-    .btn-primary:hover { background: var(--color-accent); color: white; }
-    
-    .btn-outline { border: 1px solid white; color: white; }
-    .btn-outline:hover { background: white; color: black; }
-
-    /* HERO */
+    /* HERO: Ajuste de posición */
     .hero {
-        height: 75vh; position: relative; display: flex; align-items: center;
-        background-image: url('https://images.unsplash.com/photo-1596627725963-360db272e512?q=80&w=2000');
-        background-size: cover; background-position: center;
-    }
-    .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
-    .hero-content { position: relative; z-index: 10; text-align: left; }
-    .hero h1 { font-size: 3rem; line-height: 1.1; margin-bottom: var(--space-2); color: white; }
-    .hero-label { color: var(--color-accent); font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        position: relative;
+        width: 100%;
+        /* Eliminamos el height fijo de 100dvh */
+        min-height: 50vh; 
+        
+        background-image: url('/portada.jpg'); 
+        background-size: contain; /* Mantiene la imagen completa */
+        background-position: center;
+        background-repeat: no-repeat;
+        
+        /* Relación de aspecto: ajusta esto según tu foto (ej. 16/9, 4/5) */
+        /* Esto hará que el contenedor escale con la imagen */
+        aspect-ratio: 2 / 3; 
 
-    /* SERVICES GRID */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: transparent; 
+    }
+
+    /* Ajuste para móviles: si la foto es vertical, cambiamos la proporción */
+    @media (max-width: 780px) {
+        .hero {
+            aspect-ratio: 2 / 3; /* O la proporción que tenga tu toma vertical */
+            height: auto;
+        }
+    }
+
+    .hero-overlay {
+        position: absolute; inset: 0;
+        /* Oscurecemos un poco más el fondo para que el botón rojo resalte */
+        background: rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+    }
+
+    .hero-content {
+        position: relative; z-index: 10;
+        width: 100%; display: flex; justify-content: center;
+        padding: 0 20px;
+    }
+
+    /* BOTÓN ROJO CON ACENTO BLANCO */
+    .btn-solid {
+        /* Color base Rojo */
+        background-color: var(--color-accent); 
+        /* Acento Blanco */
+        color: #ffffff; 
+        
+        font-family: var(--font-display); 
+        font-weight: 700;
+        text-transform: uppercase; 
+        letter-spacing: 2px; 
+        text-decoration: none;
+        font-size: 1.1rem;
+        
+        padding: 12px 28px;
+        border-radius: 4px; 
+        border: 2px solid var(--color-accent);
+        
+        transform: translateY(100px);
+
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
+        transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .btn-solid:hover {
+        /* En el hover, compensamos el movimiento original para que siga subiendo un poco */
+        transform: translateY(27px); 
+        background-color: #ffffff;
+        color: var(--color-accent);
+        border-color: #ffffff;
+    }
+
+    /* --- RESTO DE ESTILOS (IGUALES) --- */
+    .section { padding: 4rem 0; }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-header h2 { color: white; font-size: 2rem; }
+
     .services-grid { 
-        display: grid; gap: var(--space-4); 
-        grid-template-columns: 1fr; /* Móvil */
+        display: grid; gap: 1.5rem; 
+        grid-template-columns: 1fr; 
     }
     @media(min-width: 768px) { .services-grid { grid-template-columns: repeat(3, 1fr); } }
 
-    .service-card { background: #151515; border: 1px solid #333; overflow: hidden; border-radius: 8px; }
-    .service-img { height: 200px; overflow: hidden; }
-    .service-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .service-card { 
+        background-color: #151515; border: 1px solid #333; border-radius: 12px; 
+        overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .service-img { height: 220px; overflow: hidden; }
+    .service-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
     .service-card:hover .service-img img { transform: scale(1.05); }
-    .service-text { padding: var(--space-3); }
-    .service-text h3 { color: white; margin-bottom: var(--space-1); }
-    .service-text p { color: #aaa; font-size: 0.9rem; }
+    .service-text { padding: 1.5rem; }
+    .service-text h3 { color: white; margin-bottom: 0.5rem; font-size: 1.2rem; }
+    .service-text p { color: #aaa; font-size: 0.95rem; line-height: 1.5; }
 
-    /* IDENTITY GRID */
-    .identity-wrapper { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
+    .dark-bg { background-color: #050505; border-top: 1px solid #222; border-bottom: 1px solid #222; }
+    .identity-wrapper { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
     @media(min-width: 768px) { .identity-wrapper { grid-template-columns: 1fr 1fr; } }
     .full { grid-column: 1 / -1; }
-    .text-block { background: #1a1a1a; padding: var(--space-3); border-left: 2px solid var(--color-accent); }
-    .text-block h4 { color: white; margin-bottom: var(--space-1); }
-    .text-block p { color: #ccc; }
 
-    /* MAPA */
+    .text-block { 
+        background-color: #1a1a1a; padding: 2rem; border-radius: 12px; 
+        border: 1px solid #333; border-left: 4px solid var(--color-accent);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .text-block h4 { color: white; margin-bottom: 0.8rem; font-size: 1.3rem; }
+    .text-block p { color: #ccc; line-height: 1.6; }
+
     .map-container { 
-        display: grid; gap: var(--space-4); 
-        background: #151515; padding: var(--space-4); border-radius: 8px; 
-        border: 1px solid #333;
+        display: grid; gap: 2rem; background: #151515; padding: 2rem; 
+        border-radius: 12px; border: 1px solid #333;
     }
     @media(min-width: 768px) { .map-container { grid-template-columns: 1fr 2fr; align-items: center; } }
     
-    .map-visual { 
-        position: relative; height: 300px; border-radius: 4px; overflow: hidden; display: block; background: #222;
+    .map-info h2 { color: white; margin-bottom: 0.5rem; }
+    .map-info p { color: #999; margin-bottom: 1.5rem; }
+    
+    .map-frame {
+        height: 350px; width: 100%; border-radius: 8px; overflow: hidden; background: #222; border: 1px solid #444;
     }
-    .map-placeholder { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
-    .map-visual:hover .map-placeholder { opacity: 0.8; }
-    .pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; z-index: 10; }
+    .btn-outline {
+        display: inline-block; padding: 12px 24px; border: 1px solid white; 
+        color: white; text-decoration: none; border-radius: 6px; transition: 0.3s; font-weight: bold;
+    }
+    .btn-outline:hover { background: white; color: black; }
 </style>

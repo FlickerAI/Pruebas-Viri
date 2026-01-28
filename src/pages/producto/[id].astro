@@ -1,8 +1,10 @@
 ---
 import MainLayout from '../../layouts/MainLayout.astro';
-import { productos, obtenerRutaImagen } from '../../utils/data';
+import { cargarProductos } from '../../utils/loader';
 
+// GENERAR RUTAS
 export async function getStaticPaths() {
+  const { productos } = cargarProductos();
   return productos.map(p => ({
     params: { id: p.id },
     props: { producto: p },
@@ -14,170 +16,264 @@ const { producto } = Astro.props;
 
 <MainLayout title={producto.nombre}>
     <div class="product-detail container">
-        <div class="detail-image">
-            <img 
-                src={obtenerRutaImagen(producto.id, producto.archivo)} 
-                alt={producto.nombre} 
-                transition:name={`img-${producto.id}`} 
-            />
+        
+        <div class="gallery-column">
+            <div class="main-image-wrapper">
+                <img 
+                    id="main-img" 
+                    src={producto.imgPrincipal} 
+                    alt={producto.nombre} 
+                />
+                
+                <div class="zoom-hint">🔍</div>
+
+                {producto.imagenes.length > 1 && (
+                    <>
+                        <button id="prev-btn" class="nav-btn prev">❮</button>
+                        <button id="next-btn" class="nav-btn next">❯</button>
+                        <div class="counter">1 / {producto.imagenes.length}</div>
+                    </>
+                )}
+            </div>
         </div>
 
         <div class="detail-info">
             <span class="category-tag">{producto.categoria}</span>
-            <h1>{producto.nombre}</h1>
+            <span class="id-tag">ID: {producto.id}</span>
             
-            <div class="rating">
-                ★★★★★ <span style="color: #666; font-size: 0.8em;">({producto.rating})</span>
+            <h1>{producto.nombre}</h1>
+            <p class="price-lg">${producto.precio} MXN</p>
+            
+            <div class="description-box">
+                <p>{producto.descripcion}</p>
             </div>
 
-            <p class="price-lg">${producto.precio} MXN</p>
-            <p class="description">{producto.descripcion}</p>
-
             <button id="btn-apartar" class="cta-button">
-                Apartar Ahora
+                Apartar Diseño
             </button>
         </div>
     </div>
 
-    <dialog id="modal-pedido">
-    <form id="form-whatsapp" method="dialog">
-        <h2>Detalles del Apartado</h2>
-        <p>Producto: <strong>{producto.nombre}</strong></p>
-
-        <div class="input-group">
-            <label for="nombre">Tu Nombre</label>
-            <input type="text" id="nombre" required placeholder="Ej. Alexis Rodríguez" />
+    <div id="lightbox" class="lightbox">
+        <span id="close-lightbox" class="lb-close">×</span>
+        
+        <div class="lightbox-content-wrapper">
+            <button id="lb-prev" class="lb-nav left">❮</button>
+            
+            <img class="lightbox-content" id="img-lightbox">
+            
+            <button id="lb-next" class="lb-nav right">❯</button>
         </div>
+        
+        <div class="lb-counter" id="lb-counter"></div>
+    </div>
 
-        <div class="input-group">
-            <label for="fecha">Fecha de entrega</label>
-            <input type="date" id="fecha" required />
-        </div>
-
-        <div class="input-group">
-            <label for="hora">Hora aproximada</label>
-            <input type="time" id="hora" required />
-        </div>
-
-        <div class="acciones">
-            <button type="button" id="btn-cancelar">Cancelar</button>
-            <button type="submit">Enviar a WhatsApp</button>
-        </div>
-    </form>
-</dialog>
+    <dialog id="modal-pedido" class="modal">
+        <form method="dialog" id="form-whatsapp">
+            <h3>Confirmar Apartado</h3>
+            <p style="color:#aaa; font-size:0.9rem; margin-bottom:1rem;">Te redirigiremos a WhatsApp para finalizar.</p>
+            
+            <div class="input-group">
+                <label>Tu Nombre</label>
+                <input type="text" id="nombre-cliente" required placeholder="Ej. Ana Pérez" />
+            </div>
+            <div class="input-group">
+                <label>Fecha de entrega</label>
+                <input type="date" id="fecha-entrega" required />
+            </div>
+            <div class="input-group">
+                <label>Hora aproximada</label>
+                <input type="time" id="hora-entrega" required />
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancelar" class="btn-text">Cancelar</button>
+                <button type="submit" class="btn-primary">Enviar</button>
+            </div>
+        </form>
+    </dialog>
 </MainLayout>
 
-<script define:vars={{ producto }}>
+<script define:vars={{ imagenes: producto.imagenes, info: producto }}>
+    // 1. VARIABLES
+    let currentIndex = 0;
+    const totalImages = imagenes.length;
+
+    // Elementos DOM (Normal)
+    const mainImg = document.getElementById('main-img');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const counterDisplay = document.querySelector('.counter');
+
+    // Elementos DOM (Lightbox)
+    const lightbox = document.getElementById('lightbox');
+    const lbImg = document.getElementById('img-lightbox');
+    const lbPrev = document.getElementById('lb-prev');
+    const lbNext = document.getElementById('lb-next');
+    const lbClose = document.getElementById('close-lightbox');
+    const lbCounter = document.getElementById('lb-counter');
+
+    // 2. FUNCIÓN PARA ACTUALIZAR IMAGEN (Común para ambos)
+    function showImage(index) {
+        // Lógica circular
+        if (index < 0) index = totalImages - 1;
+        if (index >= totalImages) index = 0;
+        
+        currentIndex = index;
+        const ruta = imagenes[currentIndex].ruta;
+
+        // Actualizar ambas imágenes
+        if(mainImg) mainImg.src = ruta;
+        if(lbImg) lbImg.src = ruta;
+
+        // Actualizar contadores
+        const textoCount = `${currentIndex + 1} / ${totalImages}`;
+        if(counterDisplay) counterDisplay.textContent = textoCount;
+        if(lbCounter) lbCounter.textContent = textoCount;
+    }
+
+    // 3. EVENTOS NAVEGACIÓN NORMAL (Si hay más de 1 foto)
+    if (totalImages > 1) {
+        nextBtn?.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1); });
+        prevBtn?.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1); });
+    }
+
+    // 4. EVENTOS LIGHTBOX (ZOOM)
+    // Abrir Lightbox al hacer click en la imagen principal
+    mainImg.addEventListener('click', () => {
+        lbImg.src = mainImg.src; // Asegurar que carga la actual
+        lightbox.style.display = 'flex'; // Usamos Flex para centrar
+    });
+
+    // Cerrar Lightbox
+    lbClose.addEventListener('click', () => lightbox.style.display = 'none');
+    lightbox.addEventListener('click', (e) => {
+        // Cierra si das click en el fondo negro, pero no en la imagen o flechas
+        if (e.target === lightbox) lightbox.style.display = 'none';
+    });
+
+    // Navegación Lightbox
+    if (totalImages > 1) {
+        lbNext.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1); });
+        lbPrev.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1); });
+    } else {
+        // Si es solo 1 foto, ocultamos flechas del lightbox
+        lbNext.style.display = 'none';
+        lbPrev.style.display = 'none';
+    }
+
+    // 5. WHATSAPP FORM
     const btnApartar = document.getElementById('btn-apartar');
     const modal = document.getElementById('modal-pedido');
-    const btnCancelar = document.getElementById('btn-cancelar');
     const form = document.getElementById('form-whatsapp');
-    const TELEFONO = "528621246460";
-
+    const btnCancelar = document.getElementById('btn-cancelar');
+    
     btnApartar.addEventListener('click', () => modal.showModal());
     btnCancelar.addEventListener('click', () => modal.close());
 
-    form.addEventListener('submit', (e) => {
-        // En Astro con dialog, el submit puede cerrar el modal antes de ejecutar el JS
-        // Así que capturamos los datos primero.
+    form.addEventListener('submit', () => {
+        const nombre = document.getElementById('nombre-cliente').value;
+        const fecha = document.getElementById('fecha-entrega').value;
+        const hora = document.getElementById('hora-entrega').value;
         
-        const nombre = document.getElementById('nombre').value;
-        const fecha = document.getElementById('fecha').value;
-        const hora = document.getElementById('hora').value;
-        
-        // Conversión técnica de 24h a 12h para mejor legibilidad del cliente
+        // Formatear hora
         const [h, m] = hora.split(':');
         const ampm = h >= 12 ? 'PM' : 'AM';
-        const horaFormateada = `${h % 12 || 12}:${m} ${ampm}`;
+        const horaF = `${h % 12 || 12}:${m} ${ampm}`;
 
-        // Construcción del mensaje con la nueva variable de hora
-        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa apartar el "${producto.nombre}" (ID: ${producto.id}) con precio de $${producto.precio}. Lo necesito para el día ${fecha} aproximadamente a las ${horaFormateada}.`;
+        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa apartar el "${info.nombre}" (ID: ${info.id}) con precio de $${info.precio}. Lo necesito para el día ${fecha} a las ${horaF}.`;
+        const link = `https://wa.me/528621246460?text=${encodeURIComponent(mensaje)}`;
         
-        const url = `https://wa.me/${TELEFONO}?text=${encodeURIComponent(mensaje)}`;
-        
-        // Abrimos WhatsApp y cerramos el sistema de captura
-        window.open(url, '_blank');
+        window.open(link, '_blank');
         modal.close();
     });
 </script>
 
 <style>
-    .product-detail {
-        padding-top: var(--space-4);
-        display: grid;
-        gap: var(--space-4);
+    /* LAYOUT PRINCIPAL */
+    .product-detail { padding-top: 2rem; display: grid; gap: 2rem; min-height: 80vh; }
+    @media (min-width: 768px) { .product-detail { grid-template-columns: 1fr 1fr; align-items: start; } }
+
+    /* IMAGEN PRINCIPAL */
+    .main-image-wrapper { 
+        position: relative; border-radius: 8px; overflow: hidden; 
+        background: #111; aspect-ratio: 4/5; cursor: zoom-in;
     }
+    .main-image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
     
-    @media (min-width: 768px) {
-        .product-detail { grid-template-columns: 1fr 1fr; align-items: start; }
+    .zoom-hint {
+        position: absolute; top: 10px; right: 10px;
+        background: rgba(0,0,0,0.6); padding: 5px; border-radius: 50%;
+        font-size: 1.2rem; pointer-events: none;
     }
 
-    .detail-image img {
-        width: 100%; border-radius: 8px;
+    .nav-btn {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        background: rgba(0,0,0,0.5); color: white; border: none;
+        width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; transition: background 0.3s;
+    }
+    .nav-btn:hover { background: var(--color-accent); }
+    .prev { left: 10px; }
+    .next { right: 10px; }
+    
+    .counter {
+        position: absolute; bottom: 10px; right: 10px;
+        background: rgba(0,0,0,0.6); color: white; padding: 4px 8px;
+        border-radius: 4px; font-size: 0.8rem;
     }
 
-    .category-tag {
-        font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em;
-        color: var(--color-secondary);
-    }
+    /* INFO */
+    .category-tag { color: var(--color-accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
+    .id-tag { display: block; color: #666; font-size: 0.8rem; margin-bottom: 0.5rem; }
+    h1 { font-size: 2rem; color: white; line-height: 1.1; margin-bottom: 1rem; }
+    .price-lg { font-size: 1.8rem; color: var(--color-accent); font-weight: bold; margin-bottom: 1.5rem; }
+    .description-box { color: #ccc; line-height: 1.6; margin-bottom: 2rem; }
     
-    h1 { font-size: var(--fs-xxl); margin: var(--space-1) 0; }
-    
-    .price-lg {
-        font-size: var(--fs-xl); color: var(--color-accent); font-family: var(--font-display);
-        margin: var(--space-2) 0;
-    }
-    
-    .rating { color: #FFD700; margin-bottom: var(--space-2); }
+    .cta-button { width: 100%; padding: 15px; background: white; color: black; font-weight: bold; text-transform: uppercase; border: none; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+    .cta-button:hover { background: var(--color-accent); color: white; }
 
-    .cta-button {
-        width: 100%;
-        padding: var(--space-2);
-        background-color: #ffffff; /* Blanco por defecto */
-        color: var(--color-accent); /* Texto Rojo */
-        border: 1px solid #ffffff;
-        font-family: var(--font-body);
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        cursor: pointer;
-        margin-top: var(--space-4);
-        transition: all 0.3s ease;
-    }
-    
-    /* Inversión al Hover */
-    .cta-button:hover { 
-        background-color: var(--color-accent); /* Fondo Rojo */
-        color: #ffffff; /* Texto Blanco */
-        border-color: var(--color-accent);
+    /* ESTILOS LIGHTBOX (ZOOM) */
+    .lightbox {
+        display: none; /* Oculto por defecto */
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95); z-index: 5000;
+        justify-content: center; align-items: center;
+        flex-direction: column;
     }
 
-    /* MODAL DARK MODE */
-    .modal {
-        background: var(--color-surface); /* Fondo oscuro */
-        border: 1px solid #333;
-        color: var(--color-text);
-        padding: var(--space-4);
-        border-radius: 8px;
-        width: 90%; max-width: 400px;
-        margin: auto;
+    .lightbox-content-wrapper {
+        position: relative; display: flex; align-items: center; justify-content: center;
+        width: 100%; height: 85%;
     }
-    .modal::backdrop { background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
-    
-    .modal h3 { color: var(--color-accent); margin-bottom: var(--space-1); }
-    .modal-desc { color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--space-3); }
 
-    .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--color-text); }
-    .input-group input { 
-        width: 100%; padding: 12px; 
-        background: #0a0a0a; border: 1px solid #333; color: white;
-        border-radius: 4px;
+    .lightbox-content {
+        max-width: 90%; max-height: 90%;
+        object-fit: contain; border-radius: 4px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
-    .input-group { margin-bottom: var(--space-2); }
 
-    .modal-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-3); }
+    .lb-close {
+        position: absolute; top: 20px; right: 30px;
+        color: white; font-size: 3rem; cursor: pointer; z-index: 5010; line-height: 0.5;
+    }
+
+    .lb-nav {
+        background: none; border: none; color: white; font-size: 3rem;
+        cursor: pointer; padding: 0 20px; transition: color 0.3s;
+        user-select: none;
+    }
+    .lb-nav:hover { color: var(--color-accent); }
     
-    /* Botones del Modal */
-    .btn-primary { background: var(--color-accent); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
-    .btn-text { background: none; border: none; cursor: pointer; color: var(--color-text-muted); text-decoration: underline; }
+    .lb-counter { color: #888; margin-top: 10px; font-size: 1rem; }
+
+    /* MODAL WHATSAPP */
+    .modal { background: #1a1a1a; border: 1px solid #333; color: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 400px; margin: auto; }
+    .modal::backdrop { background: rgba(0,0,0,0.8); }
+    .input-group { margin-bottom: 1rem; }
+    .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+    .input-group input { width: 100%; padding: 10px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 4px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; }
+    .btn-primary { background: var(--color-accent); color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-text { background: none; border: none; color: #888; text-decoration: underline; cursor: pointer; }
 </style>

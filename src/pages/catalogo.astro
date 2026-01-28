@@ -1,42 +1,64 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
-import { productos, obtenerRutaImagen } from '../utils/data';
+import { cargarProductos } from '../utils/loader';
 
-// En el build estático renderizamos TODO. El filtrado lo hace el navegador.
+// 1. CARGA DE DATOS REALES (Build Time)
+const { productos } = cargarProductos();
 ---
 
 <MainLayout title="Catálogo">
     <div class="catalogo-container container">
         
         <div class="page-header">
-            <h1 id="titulo-categoria">Catálogo Completo</h1>
-            <p id="contador-productos">Mostrando todos los diseños</p>
+            <div>
+                <h1 id="titulo-categoria">Colección Completa</h1>
+                <p id="contador-productos" style="color:#888; font-size:0.9rem;">Cargando...</p>
+            </div>
+
+            <div class="sort-wrapper">
+                <label for="sort-select">Ordenar por:</label>
+                <select id="sort-select" class="sort-select">
+                    <option value="id-asc">Nuevos (ID)</option>
+                    <option value="price-asc">Precio: Menor a Mayor</option>
+                    <option value="price-desc">Precio: Mayor a Menor</option>
+                </select>
+            </div>
         </div>
 
-        <div class="grid-products">
-            {productos.map(p => (
-                /* AQUÍ ESTÁ EL TRUCO: 
-                   El atributo data-categoria guarda el tipo de flor para que JS lo lea.
-                */
-                <a 
-                    href={`/producto/${p.id}`} 
-                    class="card-product item-producto" 
-                    data-categoria={p.categoria}
-                >
-                    <div class="card-img">
-                        <img src={obtenerRutaImagen(p.id, p.archivo)} alt={p.nombre} loading="lazy"/>
-                    </div>
-                    <div class="card-body">
-                        <h5>{p.nombre}</h5>
-                        <span class="price">${p.precio} MXN</span>
-                        <span class="badge-cat">{p.categoria}</span>
-                    </div>
-                </a>
-            ))}
-        </div>
+        {productos.length > 0 ? (
+            <div class="grid-products" id="products-grid">
+                {productos.map(p => (
+                    /* Inyectamos data-precio y data-id para el script de ordenamiento */
+                    <a 
+                        href={`/producto/${p.id}`} 
+                        class="card-product item-producto" 
+                        data-categoria={p.categoria}
+                        data-precio={p.precio}
+                        data-id={p.id}
+                    >
+                        <div class="card-img">
+                            <img src={p.imgPrincipal} alt={p.nombre} loading="lazy"/>
+                            {p.imagenes.length > 1 && (
+                                <span class="badge-more">+{p.imagenes.length - 1} fotos</span>
+                            )}
+                        </div>
+                        <div class="card-body">
+                            <h5>{p.nombre}</h5>
+                            <span class="price">${p.precio}</span>
+                            <span class="badge-cat">{p.categoria}</span>
+                        </div>
+                    </a>
+                ))}
+            </div>
+        ) : (
+            <div class="empty-sys">
+                <h3>Aún no hay productos cargados</h3>
+                <p>Sube imágenes a <code>public/productos/</code></p>
+            </div>
+        )}
         
         <div id="no-results" class="empty-msg" style="display: none;">
-            <p>No se encontraron productos en esta categoría.</p>
+            <p>No hay diseños en esta categoría.</p>
             <button id="btn-reset" class="btn-reset">Ver todo</button>
         </div>
 
@@ -45,84 +67,125 @@ import { productos, obtenerRutaImagen } from '../utils/data';
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // 1. Detectar qué categoría pidió el usuario desde el menú (URL)
+        // --- VARIABLES ---
         const params = new URLSearchParams(window.location.search);
-        const categoriaSeleccionada = params.get('cat'); // Ej: "Ramos"
-
-        // Referencias al DOM
-        const items = document.querySelectorAll('.item-producto');
+        const categoriaSeleccionada = params.get('cat'); // viene de la URL (Menú)
+        
+        const grid = document.getElementById('products-grid');
+        const sortSelect = document.getElementById('sort-select');
+        const items = Array.from(document.querySelectorAll('.item-producto')); // Convertimos a Array real para poder ordenar
+        
         const titulo = document.getElementById('titulo-categoria');
         const contador = document.getElementById('contador-productos');
         const noResults = document.getElementById('no-results');
+
+        // --- 1. FUNCIÓN DE FILTRADO (Categoría) ---
+        function filtrarProductos() {
+            let visibles = 0;
+
+            items.forEach(item => {
+                const htmlItem = item as HTMLElement;
+                const catProd = htmlItem.getAttribute('data-categoria');
+                
+                // Si la categoría coincide O es "Todos", mostramos
+                if (!categoriaSeleccionada || categoriaSeleccionada === 'Todos' || categoriaSeleccionada === catProd) {
+                    htmlItem.style.display = 'flex';
+                    // Añadimos clase 'visible' para saber cuáles ordenar luego
+                    htmlItem.classList.add('is-visible'); 
+                    visibles++;
+                } else {
+                    htmlItem.style.display = 'none';
+                    htmlItem.classList.remove('is-visible');
+                }
+            });
+
+            // Actualizar textos
+            if (titulo) titulo.textContent = (categoriaSeleccionada && categoriaSeleccionada !== 'Todos') 
+                ? categoriaSeleccionada : 'Colección Completa';
+            
+            if (contador) contador.textContent = `${visibles} diseños disponibles`;
+
+            // Mostrar mensaje vacío si no hay nada
+            if (noResults) noResults.style.display = (visibles === 0 && items.length > 0) ? 'block' : 'none';
+            
+            // Después de filtrar, aplicamos el orden actual
+            ordenarProductos();
+        }
+
+        // --- 2. FUNCIÓN DE ORDENAMIENTO (Precio / ID) ---
+        function ordenarProductos() {
+            const criterio = (sortSelect as HTMLSelectElement).value; // id-asc, price-asc, price-desc
+            
+            // Solo ordenamos los elementos visualmente (manipulando el DOM)
+            // No importa si están ocultos o visibles, los reordenamos todos en el grid
+            
+            items.sort((a, b) => {
+                const itemA = a as HTMLElement;
+                const itemB = b as HTMLElement;
+                
+                const precioA = parseInt(itemA.getAttribute('data-precio') || '0');
+                const precioB = parseInt(itemB.getAttribute('data-precio') || '0');
+                const idA = itemA.getAttribute('data-id') || '';
+                const idB = itemB.getAttribute('data-id') || '';
+
+                if (criterio === 'price-asc') {
+                    return precioA - precioB;
+                } else if (criterio === 'price-desc') {
+                    return precioB - precioA;
+                } else {
+                    // Por defecto ID (String compare o Int compare según formato)
+                    return idA.localeCompare(idB, undefined, { numeric: true });
+                }
+            });
+
+            // Re-inyectar al DOM en el nuevo orden
+            items.forEach(item => grid?.appendChild(item));
+        }
+
+        // --- EVENTOS ---
+        // Al cambiar el select, ordenamos
+        sortSelect?.addEventListener('change', ordenarProductos);
         
-        let visibles = 0;
+        // Botón reset
+        document.getElementById('btn-reset')?.addEventListener('click', () => window.location.href = '/catalogo');
 
-        // 2. Función de Filtrado (True/False)
-        items.forEach(item => {
-            const htmlItem = item as HTMLElement;
-            // Obtenemos la categoría real del producto
-            const categoriaProducto = htmlItem.getAttribute('data-categoria');
-
-            // Lógica: Si no hay selección, O es "Todos", O coincide exactamente -> MOSTRAR
-            if (!categoriaSeleccionada || categoriaSeleccionada === 'Todos' || categoriaSeleccionada === categoriaProducto) {
-                htmlItem.style.display = 'flex'; // Mostrar
-                visibles++;
-            } else {
-                htmlItem.style.display = 'none'; // Ocultar
-            }
-        });
-
-        // 3. Actualizar textos de la interfaz
-        if (categoriaSeleccionada && categoriaSeleccionada !== 'Todos') {
-            if (titulo) titulo.textContent = categoriaSeleccionada;
-            if (contador) contador.textContent = `${visibles} diseños disponibles`;
-        } else {
-            if (titulo) titulo.textContent = 'Catálogo Completo';
-            if (contador) contador.textContent = `${visibles} diseños disponibles`;
-        }
-
-        // Manejo de estado vacío
-        if (noResults) {
-            if (visibles === 0) {
-                noResults.style.display = 'block';
-            } else {
-                noResults.style.display = 'none';
-            }
-        }
-
-        // Botón de reset dentro del catálogo
-        document.getElementById('btn-reset')?.addEventListener('click', () => {
-            window.location.href = '/catalogo';
-        });
+        // Ejecutar al inicio
+        filtrarProductos();
     });
 </script>
 
 <style>
     .catalogo-container { padding-top: 2rem; min-height: 80vh; }
     
-    .page-header {
-        margin-bottom: 2rem; border-bottom: 1px solid #222; padding-bottom: 1rem;
-        display: flex; justify-content: space-between; align-items: baseline;
+    .page-header { 
+        margin-bottom: 2rem; border-bottom: 1px solid #222; padding-bottom: 1rem; 
+        display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem;
     }
-    .page-header h1 { font-size: 1.8rem; color: white; margin: 0; }
-    .page-header p { color: #666; margin: 0; }
+    .page-header h1 { font-size: 1.5rem; color: white; margin: 0; line-height: 1.2; }
 
-    .grid-products {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+    /* ESTILOS DEL SELECTOR DE ORDEN */
+    .sort-wrapper { display: flex; align-items: center; gap: 10px; }
+    .sort-wrapper label { color: #888; font-size: 0.9rem; }
+    .sort-select {
+        background: #151515; color: white; border: 1px solid #333;
+        padding: 8px 12px; border-radius: 4px; font-family: inherit; cursor: pointer;
     }
+    .sort-select:focus { outline: none; border-color: var(--color-accent); }
+
+    .grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     @media(min-width: 768px) { .grid-products { grid-template-columns: repeat(3, 1fr); } }
-    @media(min-width: 1024px) { .grid-products { grid-template-columns: repeat(4, 1fr); } }
+    
+    .card-product { text-decoration: none; display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
+    .card-img { aspect-ratio: 4/5; border-radius: 4px; overflow: hidden; background: #222; position: relative; }
+    .card-img img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .badge-more { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
 
-    .card-product { text-decoration: none; display: flex; flex-direction: column; gap: 0.5rem; }
-    .card-img { aspect-ratio: 4/5; border-radius: 4px; overflow: hidden; background: #222; }
-    .card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-    
-    .card-body h5 { color: #e0e0e0; font-size: 0.95rem; margin: 0; font-weight: 500; }
+    .card-body h5 { color: #e0e0e0; font-size: 0.9rem; margin: 0; font-weight: 500; }
     .price { color: var(--color-accent); font-weight: 700; font-size: 0.9rem; }
-    .badge-cat { font-size: 0.7rem; color: #666; text-transform: uppercase; margin-top: 2px; display: block; }
+    .badge-cat { font-size: 0.65rem; color: #555; text-transform: uppercase; margin-top: 2px; }
     
-    .empty-msg { text-align: center; padding: 4rem; color: #666; }
-    .btn-reset { background: none; border: none; color: var(--color-accent); text-decoration: underline; cursor: pointer; margin-top: 10px; font-size: 1rem; }
+    .empty-msg, .empty-sys { text-align: center; padding: 4rem; color: #666; width: 100%; grid-column: 1 / -1; }
+    .btn-reset { background: none; border: none; color: var(--color-accent); text-decoration: underline; cursor: pointer; margin-top: 10px; }
+    .empty-sys code { display: block; background: #222; padding: 10px; margin-top: 10px; font-size: 0.8rem; word-break: break-all; }
 </style>
