@@ -1,72 +1,74 @@
-import fs from 'node:fs';
-import path from 'node:path';
+// ELIMINAMOS LA IMPORTACIÓN DE './data' QUE CAUSABA EL ERROR
 
-// 1. CONFIGURACIÓN
-const DIR_PRODUCTOS = './public/productos';
-const FILE_DESCRIPCIONES = './src/data/descripciones.json';
+// Importamos directamente el JSON de descripciones
+// Nota: Si el archivo no existe, esta línea fallará. Asegúrate de tener src/data/descripciones.json
+// Si prefieres que sea opcional, avísame, pero importarlo así es lo más eficiente.
+import descripciones from '../data/descripciones.json';
 
-// Helper: Convierte "RAMOS_PARADOS" o "RamosParados" a "Ramos Parados"
+// Helper de formato de texto
 const formatearTexto = (texto) => {
     return texto
-        // 1. Reemplaza guiones bajos y medios por espacios
         .replace(/[_-]/g, ' ')
-        // 2. Separa CamelCase (ej: RamosParados -> Ramos Parados)
         .replace(/([a-z])([A-Z])/g, '$1 $2')
-        // 3. Convierte todo a formato Título (Primera Mayúscula, resto minúscula)
         .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
         .trim();
 };
 
 export function cargarProductos() {
-    if (!fs.existsSync(DIR_PRODUCTOS)) return { productos: [], categorias: [] };
-
-    const archivos = fs.readdirSync(DIR_PRODUCTOS);
+    // 1. CARGA DE IMÁGENES (Vite/Astro Assets)
+    const glob = import.meta.glob('/src/assets/productos/*.{jpeg,jpg,png,webp}', { eager: true });
     
-    let descripciones = {};
-    if (fs.existsSync(FILE_DESCRIPCIONES)) {
-        const rawDesc = fs.readFileSync(FILE_DESCRIPCIONES, 'utf-8');
-        descripciones = JSON.parse(rawDesc);
-    }
-
-    // Regex Ajustado: Permite guiones en la categoría (Grupo 3)
+    // Regex para descomponer el nombre del archivo
     const regex = /^(.+)_ID(\w+)_([^_]+)_(\d+)_(\d+)\.(jpg|jpeg|png|webp)$/i;
     
     const mapaProductos = new Map();
     const setCategorias = new Set();
 
-    archivos.forEach(archivo => {
-        const match = archivo.match(regex);
+    // 2. PROCESAR CADA IMAGEN ENCONTRADA
+    Object.keys(glob).forEach(rutaCompleta => {
+        const nombreArchivo = rutaCompleta.split('/').pop();
+        const moduloImagen = glob[rutaCompleta].default; // La imagen optimizada
+
+        const match = nombreArchivo.match(regex);
+        
         if (match) {
             const [_, nombreRaw, id, categoriaRaw, variante, precio] = match;
             
-            // APLICAMOS EL FORMATEO AQUÍ
             const nombreLimpio = formatearTexto(nombreRaw);
             const catLimpia = formatearTexto(categoriaRaw); 
             
             setCategorias.add(catLimpia);
 
+            // Si es la primera vez que vemos este ID, creamos el producto base
             if (!mapaProductos.has(id)) {
                 mapaProductos.set(id, {
                     id: id,
                     nombre: nombreLimpio,
                     categoria: catLimpia,
                     precio: parseInt(precio),
-                    descripcion: descripciones[id] || "Diseño exclusivo de BouquetBoutique.",
+                    // Usamos el JSON importado. Si no hay descripción para ese ID, usa la genérica.
+                    descripcion: descripciones[id] || "Diseño exclusivo de BouquetBoutique con flores seleccionadas.",
                     imagenes: [] 
                 });
             }
 
+            // Agregamos la variante (imagen) al producto
             const producto = mapaProductos.get(id);
             producto.imagenes.push({
-                ruta: `/productos/${archivo}`,
+                imgObj: moduloImagen, // Objeto para <Image /> de Astro
+                ruta: moduloImagen.src, // String URL para scripts (JS cliente)
                 variante: parseInt(variante)
             });
         }
     });
 
+    // 3. ORDENAR Y PREPARAR DATOS FINALES
     const productosFinales = Array.from(mapaProductos.values()).map(p => {
+        // Ordenar variantes por número (01, 02, 03...)
         p.imagenes.sort((a, b) => a.variante - b.variante);
-        p.imgPrincipal = p.imagenes[0].ruta;
+        
+        // Definir imagen principal
+        p.imgPrincipal = p.imagenes[0].imgObj;
         return p;
     });
 

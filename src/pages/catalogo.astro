@@ -1,8 +1,8 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
 import { cargarProductos } from '../utils/loader';
+import { Image } from 'astro:assets'; // IMPORTANTE: Importamos el componente
 
-// 1. CARGA DE DATOS REALES (Build Time)
 const { productos } = cargarProductos();
 ---
 
@@ -28,7 +28,6 @@ const { productos } = cargarProductos();
         {productos.length > 0 ? (
             <div class="grid-products" id="products-grid">
                 {productos.map(p => (
-                    /* Inyectamos data-precio y data-id para el script de ordenamiento */
                     <a 
                         href={`/producto/${p.id}`} 
                         class="card-product item-producto" 
@@ -37,7 +36,14 @@ const { productos } = cargarProductos();
                         data-id={p.id}
                     >
                         <div class="card-img">
-                            <img src={p.imgPrincipal} alt={p.nombre} loading="lazy"/>
+                            <Image 
+                                src={p.imgPrincipal} 
+                                alt={p.nombre}
+                                width={400} 
+                                height={500}
+                                format="webp"
+                                loading="lazy"
+                            />
                             {p.imagenes.length > 1 && (
                                 <span class="badge-more">+{p.imagenes.length - 1} fotos</span>
                             )}
@@ -53,7 +59,7 @@ const { productos } = cargarProductos();
         ) : (
             <div class="empty-sys">
                 <h3>Aún no hay productos cargados</h3>
-                <p>Sube imágenes a <code>public/productos/</code></p>
+                <p>Asegúrate de que las fotos estén en <code>src/assets/productos/</code></p>
             </div>
         )}
         
@@ -66,31 +72,26 @@ const { productos } = cargarProductos();
 </MainLayout>
 
 <script>
+    // EL SCRIPT SIGUE IGUAL PORQUE LEE ATRIBUTOS DATA DEL HTML
     document.addEventListener('DOMContentLoaded', () => {
-        // --- VARIABLES ---
         const params = new URLSearchParams(window.location.search);
-        const categoriaSeleccionada = params.get('cat'); // viene de la URL (Menú)
+        const categoriaSeleccionada = params.get('cat');
         
         const grid = document.getElementById('products-grid');
         const sortSelect = document.getElementById('sort-select');
-        const items = Array.from(document.querySelectorAll('.item-producto')); // Convertimos a Array real para poder ordenar
+        const items = Array.from(document.querySelectorAll('.item-producto'));
         
         const titulo = document.getElementById('titulo-categoria');
         const contador = document.getElementById('contador-productos');
         const noResults = document.getElementById('no-results');
 
-        // --- 1. FUNCIÓN DE FILTRADO (Categoría) ---
         function filtrarProductos() {
             let visibles = 0;
-
             items.forEach(item => {
                 const htmlItem = item as HTMLElement;
                 const catProd = htmlItem.getAttribute('data-categoria');
-                
-                // Si la categoría coincide O es "Todos", mostramos
                 if (!categoriaSeleccionada || categoriaSeleccionada === 'Todos' || categoriaSeleccionada === catProd) {
                     htmlItem.style.display = 'flex';
-                    // Añadimos clase 'visible' para saber cuáles ordenar luego
                     htmlItem.classList.add('is-visible'); 
                     visibles++;
                 } else {
@@ -99,92 +100,58 @@ const { productos } = cargarProductos();
                 }
             });
 
-            // Actualizar textos
-            if (titulo) titulo.textContent = (categoriaSeleccionada && categoriaSeleccionada !== 'Todos') 
-                ? categoriaSeleccionada : 'Colección Completa';
-            
+            if (titulo) titulo.textContent = (categoriaSeleccionada && categoriaSeleccionada !== 'Todos') ? categoriaSeleccionada : 'Colección Completa';
             if (contador) contador.textContent = `${visibles} diseños disponibles`;
-
-            // Mostrar mensaje vacío si no hay nada
             if (noResults) noResults.style.display = (visibles === 0 && items.length > 0) ? 'block' : 'none';
             
-            // Después de filtrar, aplicamos el orden actual
             ordenarProductos();
         }
 
-        // --- 2. FUNCIÓN DE ORDENAMIENTO (Precio / ID) ---
         function ordenarProductos() {
-            const criterio = (sortSelect as HTMLSelectElement).value; // id-asc, price-asc, price-desc
-            
-            // Solo ordenamos los elementos visualmente (manipulando el DOM)
-            // No importa si están ocultos o visibles, los reordenamos todos en el grid
-            
+            const criterio = (sortSelect as HTMLSelectElement).value;
             items.sort((a, b) => {
                 const itemA = a as HTMLElement;
                 const itemB = b as HTMLElement;
-                
                 const precioA = parseInt(itemA.getAttribute('data-precio') || '0');
                 const precioB = parseInt(itemB.getAttribute('data-precio') || '0');
                 const idA = itemA.getAttribute('data-id') || '';
                 const idB = itemB.getAttribute('data-id') || '';
 
-                if (criterio === 'price-asc') {
-                    return precioA - precioB;
-                } else if (criterio === 'price-desc') {
-                    return precioB - precioA;
-                } else {
-                    // Por defecto ID (String compare o Int compare según formato)
-                    return idA.localeCompare(idB, undefined, { numeric: true });
-                }
+                if (criterio === 'price-asc') return precioA - precioB;
+                else if (criterio === 'price-desc') return precioB - precioA;
+                else return idA.localeCompare(idB, undefined, { numeric: true });
             });
-
-            // Re-inyectar al DOM en el nuevo orden
             items.forEach(item => grid?.appendChild(item));
         }
 
-        // --- EVENTOS ---
-        // Al cambiar el select, ordenamos
         sortSelect?.addEventListener('change', ordenarProductos);
-        
-        // Botón reset
         document.getElementById('btn-reset')?.addEventListener('click', () => window.location.href = '/catalogo');
-
-        // Ejecutar al inicio
         filtrarProductos();
     });
 </script>
 
 <style>
+    /* Mismos estilos, solo actualizamos el comportamiento de la imagen dentro de Image */
     .catalogo-container { padding-top: 2rem; min-height: 80vh; }
-    
-    .page-header { 
-        margin-bottom: 2rem; border-bottom: 1px solid #222; padding-bottom: 1rem; 
-        display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem;
-    }
+    .page-header { margin-bottom: 2rem; border-bottom: 1px solid #222; padding-bottom: 1rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; }
     .page-header h1 { font-size: 1.5rem; color: white; margin: 0; line-height: 1.2; }
-
-    /* ESTILOS DEL SELECTOR DE ORDEN */
     .sort-wrapper { display: flex; align-items: center; gap: 10px; }
     .sort-wrapper label { color: #888; font-size: 0.9rem; }
-    .sort-select {
-        background: #151515; color: white; border: 1px solid #333;
-        padding: 8px 12px; border-radius: 4px; font-family: inherit; cursor: pointer;
-    }
-    .sort-select:focus { outline: none; border-color: var(--color-accent); }
-
+    .sort-select { background: #151515; color: white; border: 1px solid #333; padding: 8px 12px; border-radius: 4px; font-family: inherit; cursor: pointer; }
+    
     .grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     @media(min-width: 768px) { .grid-products { grid-template-columns: repeat(3, 1fr); } }
     
     .card-product { text-decoration: none; display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
     .card-img { aspect-ratio: 4/5; border-radius: 4px; overflow: hidden; background: #222; position: relative; }
-    .card-img img { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* El componente Image genera un img, le damos estilo */
+    .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
     
     .badge-more { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
-
     .card-body h5 { color: #e0e0e0; font-size: 0.9rem; margin: 0; font-weight: 500; }
     .price { color: var(--color-accent); font-weight: 700; font-size: 0.9rem; }
     .badge-cat { font-size: 0.65rem; color: #555; text-transform: uppercase; margin-top: 2px; }
-    
     .empty-msg, .empty-sys { text-align: center; padding: 4rem; color: #666; width: 100%; grid-column: 1 / -1; }
     .btn-reset { background: none; border: none; color: var(--color-accent); text-decoration: underline; cursor: pointer; margin-top: 10px; }
     .empty-sys code { display: block; background: #222; padding: 10px; margin-top: 10px; font-size: 0.8rem; word-break: break-all; }
