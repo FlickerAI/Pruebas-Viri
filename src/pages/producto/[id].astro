@@ -70,15 +70,23 @@ const { producto } = Astro.props;
     <dialog id="modal-pedido" class="modal">
         <form method="dialog" id="form-whatsapp">
             <h3>Solicitar Cotización</h3>
-            <p style="color:#aaa; font-size:0.9rem; margin-bottom:1rem;">Te redirigiremos a WhatsApp para consultar disponibilidad y precio.</p>
+            <p style="color:#aaa; font-size:0.9rem; margin-bottom:1rem;">Te redirigiremos a WhatsApp para consultar disponibilidad.</p>
+            
             <div class="input-group">
                 <label>Tu Nombre</label>
                 <input type="text" id="nombre-cliente" required placeholder="Ej. Ana Pérez" />
             </div>
+            
             <div class="input-group">
                 <label>Fecha deseada</label>
                 <input type="date" id="fecha-entrega" required />
             </div>
+            
+            <div class="input-group">
+                <label>Hora aproximada</label>
+                <input type="time" id="hora-entrega" required />
+            </div>
+
             <div class="modal-actions">
                 <button type="button" id="btn-cancelar" class="btn-text">Cancelar</button>
                 <button type="submit" class="btn-primary">Enviar Mensaje</button>
@@ -88,6 +96,7 @@ const { producto } = Astro.props;
 </MainLayout>
 
 <script define:vars={{ imagenes: producto.imagenes.map((i: any) => i.ruta), info: producto }}>
+    // --- LÓGICA DE IMÁGENES (Igual que antes) ---
     let currentIndex = 0;
     const totalImages = imagenes.length;
 
@@ -106,7 +115,6 @@ const { producto } = Astro.props;
     function showImage(index) {
         if (index < 0) index = totalImages - 1;
         if (index >= totalImages) index = 0;
-        
         currentIndex = index;
         const nuevaRuta = imagenes[currentIndex];
 
@@ -130,7 +138,6 @@ const { producto } = Astro.props;
         lbImg.src = mainImg.src;
         lightbox.style.display = 'flex';
     });
-
     lbClose.addEventListener('click', () => lightbox.style.display = 'none');
     lightbox.addEventListener('click', (e) => {
         if (e.target === lightbox || e.target.classList.contains('lightbox-content-wrapper')) {
@@ -148,28 +155,48 @@ const { producto } = Astro.props;
         lbPrev.style.display = 'none';
     }
 
-    // WHATSAPP SIN PRECIO
+    // --- LÓGICA WHATSAPP (CORREGIDA) ---
     const btnApartar = document.getElementById('btn-apartar');
     const modal = document.getElementById('modal-pedido');
     const form = document.getElementById('form-whatsapp');
     const btnCancelar = document.getElementById('btn-cancelar');
     
+    // Abrir Modal
     btnApartar.addEventListener('click', () => modal.showModal());
+    
+    // Cerrar Modal (Cancelar)
     btnCancelar.addEventListener('click', () => modal.close());
 
-    form.addEventListener('submit', () => {
+    // Enviar Formulario
+    form.addEventListener('submit', (e) => {
+        // Obtenemos los valores
         const nombre = document.getElementById('nombre-cliente').value;
         const fecha = document.getElementById('fecha-entrega').value;
+        const hora = document.getElementById('hora-entrega').value; // Esto fallaba porque no existía el input
 
-        // Mensaje modificado: Ya no incluye precio
-        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa cotizar y apartar el modelo "${info.nombre}" (ID: ${info.id}). Lo necesitaría para el día ${fecha}.`;
-        window.open(`https://wa.me/528621246460?text=${encodeURIComponent(mensaje)}`, '_blank');
-        modal.close();
+        // Formato de hora (12h)
+        let horaF = hora;
+        if (hora) {
+            const [h, m] = hora.split(':');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            horaF = `${h12}:${m} ${ampm}`;
+        }
+
+        // Construir URL
+        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa cotizar el modelo "${info.nombre}" (ID: ${info.id}). Lo necesito para el día ${fecha} a las ${horaF}.`;
+        const url = `https://wa.me/528626283060?text=${encodeURIComponent(mensaje)}`;
+        
+        // Abrir WhatsApp
+        window.open(url, '_blank');
+        
+        // El modal se cierra automáticamente por el submit de dialog, pero aseguramos
+        // No usamos preventDefault() aquí para dejar que el dialog maneje su cierre nativo tras el submit
     });
 </script>
 
 <style>
-    /* Estilos se mantienen, eliminamos referencia a .price-lg si sobraba */
+    /* ESTILOS (Sin cambios, solo para mantener integridad) */
     .product-detail { padding-top: 2rem; display: grid; gap: 2rem; min-height: 80vh; }
     @media (min-width: 768px) { .product-detail { grid-template-columns: 1fr 1fr; align-items: start; } }
 
@@ -186,7 +213,6 @@ const { producto } = Astro.props;
     .category-tag { color: var(--color-accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
     .id-tag { display: block; color: #666; font-size: 0.8rem; margin-bottom: 0.5rem; }
     h1 { font-size: 2rem; color: white; line-height: 1.1; margin-bottom: 1rem; }
-    
     .description-box { color: #ccc; line-height: 1.6; margin-bottom: 2rem; }
     .cta-button { width: 100%; padding: 15px; background: white; color: black; font-weight: bold; text-transform: uppercase; border: none; cursor: pointer; font-size: 1rem; transition: 0.3s; }
     .cta-button:hover { background: var(--color-accent); color: white; }
@@ -194,12 +220,10 @@ const { producto } = Astro.props;
     .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 5000; justify-content: center; align-items: center; flex-direction: column; }
     .lightbox-content-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 85%; pointer-events: none; }
     .lightbox-content { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); pointer-events: auto; }
-    
     .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.1); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; cursor: pointer; z-index: 6000; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
     .lb-nav:hover { background: var(--color-accent); }
     .lb-left { left: 20px; }
     .lb-right { right: 20px; }
-
     .lb-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 3rem; cursor: pointer; z-index: 6010; line-height: 0.5; }
     .lb-counter { color: #888; margin-top: 10px; font-size: 1rem; }
 
