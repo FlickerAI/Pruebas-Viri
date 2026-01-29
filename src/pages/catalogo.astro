@@ -1,7 +1,7 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
 import { cargarProductos } from '../utils/loader';
-import { Image } from 'astro:assets'; // IMPORTANTE: Importamos el componente
+import { Image } from 'astro:assets';
 
 const { productos } = cargarProductos();
 ---
@@ -14,16 +14,8 @@ const { productos } = cargarProductos();
                 <h1 id="titulo-categoria">Colección Completa</h1>
                 <p id="contador-productos" style="color:#888; font-size:0.9rem;">Cargando...</p>
             </div>
-
-            <div class="sort-wrapper">
-                <label for="sort-select">Ordenar por:</label>
-                <select id="sort-select" class="sort-select">
-                    <option value="id-asc">Nuevos (ID)</option>
-                    <option value="price-asc">Precio: Menor a Mayor</option>
-                    <option value="price-desc">Precio: Mayor a Menor</option>
-                </select>
+            
             </div>
-        </div>
 
         {productos.length > 0 ? (
             <div class="grid-products" id="products-grid">
@@ -32,7 +24,6 @@ const { productos } = cargarProductos();
                         href={`/producto/${p.id}`} 
                         class="card-product item-producto" 
                         data-categoria={p.categoria}
-                        data-precio={p.precio}
                         data-id={p.id}
                     >
                         <div class="card-img">
@@ -50,7 +41,6 @@ const { productos } = cargarProductos();
                         </div>
                         <div class="card-body">
                             <h5>{p.nombre}</h5>
-                            <span class="price">${p.precio}</span>
                             <span class="badge-cat">{p.categoria}</span>
                         </div>
                     </a>
@@ -59,7 +49,8 @@ const { productos } = cargarProductos();
         ) : (
             <div class="empty-sys">
                 <h3>Aún no hay productos cargados</h3>
-                <p>Asegúrate de que las fotos estén en <code>src/assets/productos/</code></p>
+                <p>Asegúrate de que las fotos estén en <code>src/assets/productos/</code> con el formato sin precio:</p>
+                <code>Nombre_ID001_CATEGORIA_01.jpg</code>
             </div>
         )}
         
@@ -72,13 +63,11 @@ const { productos } = cargarProductos();
 </MainLayout>
 
 <script>
-    // EL SCRIPT SIGUE IGUAL PORQUE LEE ATRIBUTOS DATA DEL HTML
     document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         const categoriaSeleccionada = params.get('cat');
         
         const grid = document.getElementById('products-grid');
-        const sortSelect = document.getElementById('sort-select');
         const items = Array.from(document.querySelectorAll('.item-producto'));
         
         const titulo = document.getElementById('titulo-categoria');
@@ -104,54 +93,44 @@ const { productos } = cargarProductos();
             if (contador) contador.textContent = `${visibles} diseños disponibles`;
             if (noResults) noResults.style.display = (visibles === 0 && items.length > 0) ? 'block' : 'none';
             
-            ordenarProductos();
+            // Orden por defecto: ID (Nuevos)
+            ordenarPorId();
         }
 
-        function ordenarProductos() {
-            const criterio = (sortSelect as HTMLSelectElement).value;
+        function ordenarPorId() {
+            // Ordenamos por ID descendente (o ascendente según prefieras)
             items.sort((a, b) => {
                 const itemA = a as HTMLElement;
                 const itemB = b as HTMLElement;
-                const precioA = parseInt(itemA.getAttribute('data-precio') || '0');
-                const precioB = parseInt(itemB.getAttribute('data-precio') || '0');
                 const idA = itemA.getAttribute('data-id') || '';
                 const idB = itemB.getAttribute('data-id') || '';
-
-                if (criterio === 'price-asc') return precioA - precioB;
-                else if (criterio === 'price-desc') return precioB - precioA;
-                else return idA.localeCompare(idB, undefined, { numeric: true });
+                return idA.localeCompare(idB, undefined, { numeric: true });
             });
             items.forEach(item => grid?.appendChild(item));
         }
 
-        sortSelect?.addEventListener('change', ordenarProductos);
         document.getElementById('btn-reset')?.addEventListener('click', () => window.location.href = '/catalogo');
         filtrarProductos();
     });
 </script>
 
 <style>
-    /* Mismos estilos, solo actualizamos el comportamiento de la imagen dentro de Image */
     .catalogo-container { padding-top: 2rem; min-height: 80vh; }
     .page-header { margin-bottom: 2rem; border-bottom: 1px solid #222; padding-bottom: 1rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; }
     .page-header h1 { font-size: 1.5rem; color: white; margin: 0; line-height: 1.2; }
-    .sort-wrapper { display: flex; align-items: center; gap: 10px; }
-    .sort-wrapper label { color: #888; font-size: 0.9rem; }
-    .sort-select { background: #151515; color: white; border: 1px solid #333; padding: 8px 12px; border-radius: 4px; font-family: inherit; cursor: pointer; }
     
     .grid-products { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     @media(min-width: 768px) { .grid-products { grid-template-columns: repeat(3, 1fr); } }
     
     .card-product { text-decoration: none; display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
     .card-img { aspect-ratio: 4/5; border-radius: 4px; overflow: hidden; background: #222; position: relative; }
-    
-    /* El componente Image genera un img, le damos estilo */
     .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
     
     .badge-more { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
     .card-body h5 { color: #e0e0e0; font-size: 0.9rem; margin: 0; font-weight: 500; }
-    .price { color: var(--color-accent); font-weight: 700; font-size: 0.9rem; }
-    .badge-cat { font-size: 0.65rem; color: #555; text-transform: uppercase; margin-top: 2px; }
+    /* Estilo sin precio */
+    .badge-cat { font-size: 0.7rem; color: var(--color-accent); text-transform: uppercase; margin-top: 2px; }
+    
     .empty-msg, .empty-sys { text-align: center; padding: 4rem; color: #666; width: 100%; grid-column: 1 / -1; }
     .btn-reset { background: none; border: none; color: var(--color-accent); text-decoration: underline; cursor: pointer; margin-top: 10px; }
     .empty-sys code { display: block; background: #222; padding: 10px; margin-top: 10px; font-size: 0.8rem; word-break: break-all; }

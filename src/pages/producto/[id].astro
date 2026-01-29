@@ -46,60 +46,51 @@ const { producto } = Astro.props;
             <span class="id-tag">ID: {producto.id}</span>
             
             <h1>{producto.nombre}</h1>
-            <p class="price-lg">${producto.precio} MXN</p>
             
             <div class="description-box">
                 <p>{producto.descripcion}</p>
             </div>
 
             <button id="btn-apartar" class="cta-button">
-                Apartar Diseño
+                Cotizar Diseño
             </button>
         </div>
     </div>
 
     <div id="lightbox" class="lightbox">
         <span id="close-lightbox" class="lb-close">×</span>
-        
         <button id="lb-prev" class="lb-nav lb-left">❮</button>
         <button id="lb-next" class="lb-nav lb-right">❯</button>
-
         <div class="lightbox-content-wrapper">
             <img class="lightbox-content" id="img-lightbox">
         </div>
-        
         <div class="lb-counter" id="lb-counter"></div>
     </div>
 
     <dialog id="modal-pedido" class="modal">
         <form method="dialog" id="form-whatsapp">
-            <h3>Confirmar Apartado</h3>
-            <p style="color:#aaa; font-size:0.9rem; margin-bottom:1rem;">Te redirigiremos a WhatsApp para finalizar.</p>
+            <h3>Solicitar Cotización</h3>
+            <p style="color:#aaa; font-size:0.9rem; margin-bottom:1rem;">Te redirigiremos a WhatsApp para consultar disponibilidad y precio.</p>
             <div class="input-group">
                 <label>Tu Nombre</label>
                 <input type="text" id="nombre-cliente" required placeholder="Ej. Ana Pérez" />
             </div>
             <div class="input-group">
-                <label>Fecha de entrega</label>
+                <label>Fecha deseada</label>
                 <input type="date" id="fecha-entrega" required />
-            </div>
-            <div class="input-group">
-                <label>Hora aproximada</label>
-                <input type="time" id="hora-entrega" required />
             </div>
             <div class="modal-actions">
                 <button type="button" id="btn-cancelar" class="btn-text">Cancelar</button>
-                <button type="submit" class="btn-primary">Enviar</button>
+                <button type="submit" class="btn-primary">Enviar Mensaje</button>
             </div>
         </form>
     </dialog>
 </MainLayout>
 
-<script define:vars={{ imagenes: producto.imagenes.map((i: { ruta: string }) => i.ruta), info: producto }}>
+<script define:vars={{ imagenes: producto.imagenes.map((i: any) => i.ruta), info: producto }}>
     let currentIndex = 0;
     const totalImages = imagenes.length;
 
-    // Referencias DOM
     const mainImg = document.getElementById('main-img');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
@@ -119,56 +110,45 @@ const { producto } = Astro.props;
         currentIndex = index;
         const nuevaRuta = imagenes[currentIndex];
 
-        // 1. Actualizar Main
         if(mainImg) {
             mainImg.src = nuevaRuta;
-            mainImg.removeAttribute('srcset'); // Corrección crucial para Astro Assets
+            mainImg.removeAttribute('srcset'); 
         }
-
-        // 2. Actualizar Lightbox
         if(lbImg) lbImg.src = nuevaRuta;
 
-        // 3. Contadores
         const textoCount = `${currentIndex + 1} / ${totalImages}`;
         if(counterDisplay) counterDisplay.textContent = textoCount;
         if(lbCounter) lbCounter.textContent = textoCount;
     }
 
-    // Eventos Galería Normal
     if (totalImages > 1) {
         nextBtn?.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1); });
         prevBtn?.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1); });
     }
 
-    // Eventos Lightbox
     mainImg.addEventListener('click', () => {
         lbImg.src = mainImg.src;
         lightbox.style.display = 'flex';
     });
 
     lbClose.addEventListener('click', () => lightbox.style.display = 'none');
-    
     lightbox.addEventListener('click', (e) => {
-        // Cerrar si clic en fondo negro (pero no en flechas ni imagen)
         if (e.target === lightbox || e.target.classList.contains('lightbox-content-wrapper')) {
             lightbox.style.display = 'none';
         }
     });
 
-    // Flechas Lightbox
     if (totalImages > 1) {
-        lbNext.style.display = 'flex'; // Asegurar que se vean
+        lbNext.style.display = 'flex';
         lbPrev.style.display = 'flex';
-        
         lbNext.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex + 1); });
         lbPrev.addEventListener('click', (e) => { e.stopPropagation(); showImage(currentIndex - 1); });
     } else {
-        // Ocultar si solo hay 1 foto
         lbNext.style.display = 'none';
         lbPrev.style.display = 'none';
     }
 
-    // Modal Whatsapp
+    // WHATSAPP SIN PRECIO
     const btnApartar = document.getElementById('btn-apartar');
     const modal = document.getElementById('modal-pedido');
     const form = document.getElementById('form-whatsapp');
@@ -180,88 +160,49 @@ const { producto } = Astro.props;
     form.addEventListener('submit', () => {
         const nombre = document.getElementById('nombre-cliente').value;
         const fecha = document.getElementById('fecha-entrega').value;
-        const hora = document.getElementById('hora-entrega').value;
-        const [h, m] = hora.split(':');
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const horaF = `${h % 12 || 12}:${m} ${ampm}`;
 
-        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa apartar el "${info.nombre}" (ID: ${info.id}) con precio de $${info.precio}. Lo necesito para el día ${fecha} a las ${horaF}.`;
+        // Mensaje modificado: Ya no incluye precio
+        const mensaje = `Hola BouquetBoutique, soy ${nombre}. Me interesa cotizar y apartar el modelo "${info.nombre}" (ID: ${info.id}). Lo necesitaría para el día ${fecha}.`;
         window.open(`https://wa.me/528621246460?text=${encodeURIComponent(mensaje)}`, '_blank');
         modal.close();
     });
 </script>
 
 <style>
-    /* --- ESTILOS NORMALES --- */
+    /* Estilos se mantienen, eliminamos referencia a .price-lg si sobraba */
     .product-detail { padding-top: 2rem; display: grid; gap: 2rem; min-height: 80vh; }
     @media (min-width: 768px) { .product-detail { grid-template-columns: 1fr 1fr; align-items: start; } }
 
-    .main-image-wrapper { 
-        position: relative; border-radius: 8px; overflow: hidden; 
-        background: #111; aspect-ratio: 4/5; cursor: zoom-in;
-    }
+    .main-image-wrapper { position: relative; border-radius: 8px; overflow: hidden; background: #111; aspect-ratio: 4/5; cursor: zoom-in; }
     .img-main { width: 100%; height: 100%; object-fit: cover; display: block; }
     
     .zoom-hint { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 5px; border-radius: 50%; font-size: 1.2rem; pointer-events: none; }
-    
     .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.3s; z-index: 10; }
     .nav-btn:hover { background: var(--color-accent); }
     .prev { left: 10px; }
     .next { right: 10px; }
     .counter { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; z-index: 10; }
 
-    /* Info Styles */
     .category-tag { color: var(--color-accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
     .id-tag { display: block; color: #666; font-size: 0.8rem; margin-bottom: 0.5rem; }
     h1 { font-size: 2rem; color: white; line-height: 1.1; margin-bottom: 1rem; }
-    .price-lg { font-size: 1.8rem; color: var(--color-accent); font-weight: bold; margin-bottom: 1.5rem; }
+    
     .description-box { color: #ccc; line-height: 1.6; margin-bottom: 2rem; }
     .cta-button { width: 100%; padding: 15px; background: white; color: black; font-weight: bold; text-transform: uppercase; border: none; cursor: pointer; font-size: 1rem; transition: 0.3s; }
     .cta-button:hover { background: var(--color-accent); color: white; }
 
-    /* --- ESTILOS LIGHTBOX (CORREGIDOS) --- */
-    .lightbox { 
-        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.95); z-index: 5000; 
-        justify-content: center; align-items: center; flex-direction: column;
-    }
-
-    .lightbox-content-wrapper { 
-        position: relative; display: flex; align-items: center; justify-content: center; 
-        width: 100%; height: 85%; pointer-events: none; /* Dejar pasar clic para cerrar si picas afuera */
-    }
-
-    .lightbox-content { 
-        max-width: 90%; max-height: 90%; 
-        object-fit: contain; border-radius: 4px; 
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        pointer-events: auto; /* Reactivar clics en la imagen */
-    }
-
-    /* FLECHAS ABSOLUTAS (FLOTANTES) */
-    .lb-nav {
-        position: absolute; /* CLAVE: Flotan sobre todo */
-        top: 50%; transform: translateY(-50%);
-        background: rgba(255, 255, 255, 0.1); 
-        color: white; border: none;
-        width: 60px; height: 60px; border-radius: 50%;
-        font-size: 2rem; cursor: pointer; z-index: 6000;
-        display: flex; align-items: center; justify-content: center;
-        transition: background 0.3s;
-    }
-    .lb-nav:hover { background: var(--color-accent); }
+    .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 5000; justify-content: center; align-items: center; flex-direction: column; }
+    .lightbox-content-wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 85%; pointer-events: none; }
+    .lightbox-content { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); pointer-events: auto; }
     
+    .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.1); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; cursor: pointer; z-index: 6000; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+    .lb-nav:hover { background: var(--color-accent); }
     .lb-left { left: 20px; }
     .lb-right { right: 20px; }
 
-    .lb-close { 
-        position: absolute; top: 20px; right: 30px; 
-        color: white; font-size: 3rem; cursor: pointer; z-index: 6010; line-height: 0.5; 
-    }
-    
+    .lb-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 3rem; cursor: pointer; z-index: 6010; line-height: 0.5; }
     .lb-counter { color: #888; margin-top: 10px; font-size: 1rem; }
 
-    /* --- MODAL WHATSAPP --- */
     .modal { background: #1a1a1a; border: 1px solid #333; color: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 400px; margin: auto; }
     .modal::backdrop { background: rgba(0,0,0,0.8); }
     .input-group { margin-bottom: 1rem; }
